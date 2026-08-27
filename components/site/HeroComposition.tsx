@@ -8,22 +8,18 @@ import { QuantityBar } from "@/components/ui/MetricCard";
 const EASE = [0.22, 1, 0.36, 1] as const;
 
 const SEQUENCE = {
-  count: 0.15,
-  purchase: 1.14,
-  purchaseValues: [1.28, 1.43, 1.58],
-  consumption: 2.12,
-  expected: 2.28,
-  actual: 2.62,
-  variance: 3.3,
-  staff: 3.82,
+  count: 0.08,
+  purchase: 0.79,
+  purchaseValues: [0.9, 1.03, 1.16],
+  consumption: 1.77,
+  expected: 1.87,
+  actual: 2.04,
+  variance: 2.16,
+  staff: 2.74,
 } as const;
 
-const connectorSegments = [
-  { d: "M18 26 L18 47 L64 47", delay: 0.54, duration: 0.6 },
-  { d: "M64 47 L64 55", delay: 1.76, duration: 0.42 },
-  { d: "M64 74 L64 84 L30 84 L30 90", delay: 2.92, duration: 0.5 },
-  { d: "M61 92 L64 92", delay: 3.56, duration: 0.24 },
-] as const;
+const RAIL_PATH =
+  "M18 34 L18 47 L26 47 L64 47 L64 62 L60 62 L60 68.3 L66 68.3 L82 68.3 L82 78";
 
 /** Stock lines shown in the count card. Sample operational data. */
 const countRows = [
@@ -47,7 +43,7 @@ function RevealStep({
       className={className}
       initial={reduce ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.48, delay: reduce ? 0 : delay, ease: EASE }}
+      transition={{ duration: 0.36, delay: reduce ? 0 : delay, ease: EASE }}
     >
       {children}
     </motion.div>
@@ -63,7 +59,7 @@ export function HeroComposition() {
   const reduce = useReducedMotion();
 
   return (
-    <div className="relative">
+    <div className="relative lg:h-[447px]">
       {/* fine operational grid, faded at the edges */}
       <div
         aria-hidden="true"
@@ -86,23 +82,31 @@ export function HeroComposition() {
         <g
           fill="none"
           stroke="var(--color-tartan)"
-          strokeOpacity="0.28"
-          strokeWidth="1"
+          strokeOpacity="0.5"
+          strokeWidth="1.375"
           vectorEffect="non-scaling-stroke"
         >
-          {connectorSegments.map((segment) => (
-            <motion.path
-              key={segment.d}
-              d={segment.d}
-              initial={reduce ? false : { pathLength: 0 }}
-              animate={{ pathLength: 1 }}
-              transition={{
-                duration: reduce ? 0 : segment.duration,
-                delay: reduce ? 0 : segment.delay,
-                ease: EASE,
-              }}
-            />
-          ))}
+          <motion.path
+            d={RAIL_PATH}
+            initial={reduce ? false : { pathLength: 0 }}
+            animate={
+              reduce
+                ? { pathLength: 1 }
+                : {
+                    pathLength: [0, 0.18, 0.18, 0.66, 0.66, 0.77, 0.77, 1],
+                  }
+            }
+            transition={
+              reduce
+                ? { duration: 0 }
+                : {
+                    duration: 2.32,
+                    delay: 0.38,
+                    ease: EASE,
+                    times: [0, 0.16, 0.23, 0.58, 0.64, 0.75, 0.81, 1],
+                  }
+            }
+          />
         </g>
         {/* A quiet packet moves through the completed chain every few seconds. */}
         <g
@@ -112,44 +116,45 @@ export function HeroComposition() {
           strokeLinecap="round"
           vectorEffect="non-scaling-stroke"
         >
-          {connectorSegments.map((segment, index) => (
-            <motion.path
-              key={`pulse-${segment.d}`}
-              d={segment.d}
-              pathLength={1}
-              strokeDasharray="0.08 0.92"
-              initial={{ opacity: 0, strokeDashoffset: 0.08 }}
-              animate={
-                reduce
-                  ? { opacity: 0 }
-                  : {
-                      opacity: [0, 0.5, 0.5, 0],
-                      strokeDashoffset: [0.08, -0.25, -0.58, -0.92],
-                    }
-              }
-              transition={
-                reduce
-                  ? { duration: 0 }
-                  : {
-                      duration: 1.05,
-                      delay: 4.5 + index * 0.18,
-                      ease: "linear",
-                      repeat: Infinity,
-                      repeatDelay: 4.9,
-                    }
-              }
-            />
-          ))}
+          <motion.path
+            d={RAIL_PATH}
+            pathLength={1}
+            strokeDasharray="0.055 0.945"
+            initial={{ opacity: 0, strokeDashoffset: 0.055 }}
+            animate={
+              reduce
+                ? { opacity: 0 }
+                : {
+                    opacity: [0, 0.38, 0.38, 0],
+                    strokeDashoffset: [0.055, -0.28, -0.62, -0.945],
+                  }
+            }
+            transition={
+              reduce
+                ? { duration: 0 }
+                : {
+                    duration: 1.25,
+                    delay: 3.7,
+                    ease: "linear",
+                    repeat: Infinity,
+                    repeatDelay: 4.75,
+                  }
+            }
+          />
         </g>
       </svg>
 
-      <div className="flex flex-col gap-4 lg:gap-0">
+      <div className="flex flex-col gap-4 lg:contents">
         {/* 01 — STOCK */}
-        <RevealStep delay={SEQUENCE.count} className="lg:w-[86%]">
+        <RevealStep
+          delay={SEQUENCE.count}
+          className="lg:absolute lg:left-0 lg:top-0 lg:w-[86%]"
+        >
           <DataCard
             label="Today's count · Cool room 1"
+            labelClassName="text-[0.6875rem] text-ink/60"
             status={
-              <span className="label-mono-sm text-ink-40">07:42</span>
+              <span className="label-mono-sm text-[0.6875rem] text-ink/60">07:42</span>
             }
             className="hover:shadow-lift transition-shadow duration-500"
           >
@@ -185,10 +190,14 @@ export function HeroComposition() {
         </RevealStep>
 
         {/* 02 — PURCHASING + DELIVERIES */}
-        <RevealStep delay={SEQUENCE.purchase} className="lg:mt-11 lg:ml-[26%] lg:w-[74%]">
+        <RevealStep
+          delay={SEQUENCE.purchase}
+          className="lg:absolute lg:left-[26%] lg:top-[163px] lg:w-[74%]"
+        >
           <DataCard
             label="PO #2481 · Meatsmith Co."
             status={<Chip state="flag">2 to check</Chip>}
+            labelClassName="text-[0.6875rem] text-ink/60"
             className="hover:shadow-lift transition-shadow duration-500"
           >
             <div className="grid grid-cols-3 divide-x divide-rule-soft">
@@ -213,7 +222,7 @@ export function HeroComposition() {
                   <span className="num text-[1.375rem] font-medium leading-none tracking-[-0.02em]">
                     {c.v}
                   </span>
-                  <span className="label-mono-sm text-ink-40">{c.k}</span>
+                  <span className="label-mono-sm text-[0.6875rem] text-ink/60">{c.k}</span>
                 </motion.div>
               ))}
             </div>
@@ -221,10 +230,14 @@ export function HeroComposition() {
         </RevealStep>
 
         {/* 03 — SALES → CONSUMPTION */}
-        <RevealStep delay={SEQUENCE.consumption} className="lg:mt-10 lg:w-[68%]">
+        <RevealStep
+          delay={SEQUENCE.consumption}
+          className="lg:absolute lg:left-0 lg:top-[273px] lg:w-[54%] xl:w-[64%]"
+        >
           <DataCard
             label="Sales → consumption · Chicken breast"
-            status={<span className="label-mono-sm text-ink-40">Week 34</span>}
+            status={<span className="label-mono-sm text-[0.6875rem] text-ink/60">Week 34</span>}
+            labelClassName="text-[0.6875rem] text-ink/60"
             className="hover:shadow-lift transition-shadow duration-500"
           >
             <div className="flex flex-col gap-3">
@@ -239,7 +252,7 @@ export function HeroComposition() {
                 }}
               >
                 <div className="flex items-center justify-between gap-3">
-                  <span className="label-mono-sm text-ink-40">Expected</span>
+                  <span className="label-mono-sm text-[0.6875rem] text-ink/60">Expected</span>
                   <span className="num text-[0.875rem] font-medium">10kg</span>
                 </div>
                 <QuantityBar percent={83} />
@@ -255,7 +268,7 @@ export function HeroComposition() {
                 }}
               >
                 <div className="flex items-center justify-between gap-3 pt-1">
-                  <span className="label-mono-sm text-tartan">Actual</span>
+                  <span className="label-mono-sm text-[0.6875rem] text-tartan">Actual</span>
                   <span className="num text-[0.875rem] font-medium">12kg</span>
                 </div>
                 <QuantityBar percent={100} variant="over" />
@@ -265,33 +278,39 @@ export function HeroComposition() {
         </RevealStep>
 
         {/* variance read-out + staff — the two ends of the chain */}
-        <div className="flex flex-wrap items-stretch gap-4 lg:mt-8 lg:ml-[30%]">
-          <RevealStep delay={SEQUENCE.variance}>
-            <div className="flex items-center gap-3 rounded-[6px] border border-tartan bg-tartan px-3.5 py-3">
-              <span className="num text-[1.5rem] font-medium leading-none tracking-[-0.02em] text-mint">
+        <div className="flex flex-wrap items-stretch gap-4 lg:contents">
+          <RevealStep
+            delay={SEQUENCE.variance}
+            className="lg:absolute lg:right-0 lg:top-[273px]"
+          >
+            <div className="flex items-center gap-3 rounded-[6px] border border-tartan bg-tartan px-4 py-4">
+              <span className="num text-[1.75rem] font-medium leading-none tracking-[-0.02em] text-mint">
                 +2kg
               </span>
               <span aria-hidden="true" className="h-7 w-px bg-mint/25" />
               <span className="flex flex-col gap-1">
-                <span className="num text-[0.9375rem] font-medium leading-none text-paper">
+                <span className="num text-[1rem] font-medium leading-none text-paper">
                   $24
                 </span>
-                <span className="label-mono-sm text-paper/50">Variance</span>
+                <span className="label-mono-sm text-[0.6875rem] text-paper/70">Variance</span>
               </span>
             </div>
           </RevealStep>
 
-          <RevealStep delay={SEQUENCE.staff}>
-            <div className="flex h-full items-center gap-3 rounded-[6px] border border-rule bg-paper px-3.5 py-3">
+          <RevealStep
+            delay={SEQUENCE.staff}
+            className="lg:absolute lg:right-0 lg:top-[346px]"
+          >
+            <div className="flex h-full items-center gap-2.5 rounded-[6px] border border-rule bg-paper px-3 py-2.5">
               <span
                 aria-hidden="true"
                 className="h-1.5 w-1.5 rounded-full bg-mint"
               />
               <span className="flex flex-col gap-1">
-                <span className="text-[0.8125rem] leading-none font-medium">
+                <span className="text-[0.75rem] leading-none font-medium">
                   On shift · 4
                 </span>
-                <span className="label-mono-sm text-ink-40">
+                <span className="label-mono-sm text-[0.6875rem] text-ink/60">
                   Fri 3:00pm–10:00pm
                 </span>
               </span>

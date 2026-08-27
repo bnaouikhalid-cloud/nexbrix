@@ -32,9 +32,11 @@ export function Hero() {
           <RevealLines lines={hero.headline} delay={0.08} />
         </h1>
 
-        <div className="mt-12 grid grid-cols-1 items-start gap-x-10 gap-y-14 lg:mt-16 lg:grid-cols-12">
+        {/* On desktop the row margin sets the headline-to-composition gap; the
+            body column adds the balance back so the copy keeps its old start. */}
+        <div className="mt-12 grid grid-cols-1 items-start gap-x-10 gap-y-14 lg:mt-9 lg:grid-cols-12">
           {/* --------------------------------------------- body + actions */}
-          <div className="lg:col-span-5">
+          <div className="lg:col-span-5 lg:pt-7">
             <Reveal delay={0.35} y={14}>
               <p className="text-[1.0625rem] leading-[1.62] text-ink-70">
                 {hero.body}

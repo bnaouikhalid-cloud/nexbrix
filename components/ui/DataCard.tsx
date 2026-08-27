@@ -10,12 +10,14 @@ export function DataCard({
   children,
   tone = "light",
   className = "",
+  labelClassName = "",
 }: {
   label: string;
   status?: ReactNode;
   children: ReactNode;
   tone?: "light" | "dark";
   className?: string;
+  labelClassName?: string;
 }) {
   const dark = tone === "dark";
 
@@ -33,7 +35,7 @@ export function DataCard({
         }`}
       >
         <span
-          className={`label-mono-sm ${dark ? "text-paper/60" : "text-ink-55"}`}
+          className={`label-mono-sm ${dark ? "text-paper/60" : "text-ink-55"} ${labelClassName}`}
         >
           {label}
         </span>
