@@ -1,49 +1,63 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
-import { DataCard } from "@/components/ui/DataCard";
-import { Chip, Tick } from "@/components/ui/ProductWindow";
-import { QuantityBar } from "@/components/ui/MetricCard";
+import { ProductWindow, Chip, Tick } from "@/components/ui/ProductWindow";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
+/** One pass through the product: frame, headline numbers, the proof, the paperwork. */
 const SEQUENCE = {
-  count: 0.08,
-  purchase: 0.79,
-  purchaseValues: [0.9, 1.03, 1.16],
-  consumption: 1.77,
-  expected: 1.87,
-  actual: 2.04,
-  variance: 2.16,
-  staff: 2.74,
+  window: 0.06,
+  kpi: 0.32,
+  kpiStep: 0.09,
+  consumption: 0.64,
+  expected: 0.8,
+  actual: 0.96,
+  phone: 1.12,
+  purchasing: 1.26,
+  staff: 1.42,
 } as const;
 
-const RAIL_PATH =
-  "M18 34 L18 47 L26 47 L64 47 L64 62 L60 62 L60 68.3 L66 68.3 L82 68.3 L82 78";
+/** Top-line read-outs. Sample operational data for one venue, one week. */
+const kpis = [
+  { value: "$18,240", label: "Stock value" },
+  { value: "6", label: "Open orders" },
+  { value: "3", label: "Deliveries" },
+] as const;
 
-/** Stock lines shown in the count card. Sample operational data. */
+/** The purchase order behind the flagged line. */
+const purchaseCounts = [
+  { value: "20", label: "Ordered" },
+  { value: "18", label: "Delivered" },
+  { value: "20", label: "Invoiced" },
+] as const;
+
+/** Lines on the phone's count sheet. */
 const countRows = [
-  { item: "Chicken breast", qty: "12.4", unit: "kg", done: true },
-  { item: "Milk 2L", qty: "18", unit: "ea", done: true },
-  { item: "Tomatoes", qty: "6.1", unit: "kg", done: false },
-];
+  { item: "Chicken breast", qty: "12.4", done: true },
+  { item: "Milk 2L", qty: "18", done: true },
+  { item: "Tomatoes", qty: "6.1", done: true },
+  { item: "Olive oil 4L", qty: "3", done: false },
+] as const;
 
-function RevealStep({
+function Step({
   children,
   delay,
+  x = 0,
   className = "",
 }: {
   children: React.ReactNode;
   delay: number;
+  x?: number;
   className?: string;
 }) {
   const reduce = useReducedMotion();
   return (
     <motion.div
       className={className}
-      initial={reduce ? false : { opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.36, delay: reduce ? 0 : delay, ease: EASE }}
+      initial={reduce ? false : { opacity: 0, x }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.5, delay: reduce ? 0 : delay, ease: EASE }}
     >
       {children}
     </motion.div>
@@ -51,15 +65,288 @@ function RevealStep({
 }
 
 /**
- * The hero visual: four live operations from four different parts of the
- * business, wired together. The connecting rails carry a Super Mint pulse so
- * the composition reads as one system rather than four cards.
+ * Quantity bar that fills on entrance. Matches QuantityBar's geometry — it
+ * exists separately only so the fill can be driven off the hero sequence.
+ */
+function FillBar({
+  percent,
+  delay,
+  over = false,
+}: {
+  percent: number;
+  delay: number;
+  over?: boolean;
+}) {
+  const reduce = useReducedMotion();
+  return (
+    <div className="h-2.5 w-full overflow-hidden rounded-[2px] bg-tartan/[0.07]">
+      <motion.div
+        className={`h-full rounded-[2px] ${over ? "bg-mint" : "bg-tartan"}`}
+        initial={reduce ? false : { width: 0 }}
+        animate={{ width: `${percent}%` }}
+        transition={{ duration: 0.72, delay: reduce ? 0 : delay, ease: EASE }}
+      />
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ desktop */
+
+function Dashboard() {
+  return (
+    <ProductWindow
+      path="Dashboard · Harbour Kitchen"
+      meta="Week 34"
+      live
+      className="hover:shadow-lift transition-shadow duration-500"
+    >
+      {/* headline read-outs */}
+      <div className="grid grid-cols-3 divide-x divide-rule-soft border-b border-rule-soft">
+        {kpis.map((kpi, i) => (
+          <Step
+            key={kpi.label}
+            delay={SEQUENCE.kpi + i * SEQUENCE.kpiStep}
+            className="flex flex-col gap-2 px-3.5 py-2.5"
+          >
+            <span className="num text-[1.0625rem] font-medium leading-none tracking-[-0.02em] text-ink">
+              {kpi.value}
+            </span>
+            <span className="label-mono-sm text-ink-40">{kpi.label}</span>
+          </Step>
+        ))}
+      </div>
+
+      {/* sales against consumption — the number the whole site is about */}
+      <div className="border-b border-rule-soft px-3.5 py-3.5">
+        <Step delay={SEQUENCE.consumption}>
+          <span className="label-mono-sm block truncate text-ink-55">
+            Sales → consumption · Chicken breast
+          </span>
+        </Step>
+
+        {/* the readable half of the panel stays clear of the phone */}
+        <div className="mt-3.5 flex flex-col gap-2.5 lg:max-w-[66%] xl:max-w-[72%]">
+          <div className="flex items-center gap-3">
+            <span className="label-mono-sm w-[4rem] shrink-0 text-ink-40">
+              Expected
+            </span>
+            <span className="num w-[2.5rem] shrink-0 text-[0.8125rem] font-medium text-ink">
+              10kg
+            </span>
+            <div className="min-w-0 flex-1">
+              <FillBar percent={83} delay={SEQUENCE.expected} />
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="label-mono-sm w-[4rem] shrink-0 text-tartan">
+              Actual
+            </span>
+            <span className="num w-[2.5rem] shrink-0 text-[0.8125rem] font-medium text-ink">
+              12kg
+            </span>
+            <div className="min-w-0 flex-1">
+              <FillBar percent={100} delay={SEQUENCE.actual} over />
+            </div>
+          </div>
+        </div>
+
+        <Step delay={SEQUENCE.actual + 0.18} className="mt-3.5 flex">
+          <span className="flex items-center gap-2.5 rounded-[5px] border border-tartan bg-tartan px-2.5 py-1.5">
+            <span className="num text-[1rem] font-medium leading-none tracking-[-0.02em] text-mint">
+              +2kg
+            </span>
+            <span aria-hidden="true" className="h-5 w-px bg-mint/25" />
+            <span className="flex flex-col gap-1">
+              <span className="num text-[0.75rem] font-medium leading-none text-paper">
+                $24
+              </span>
+              <span className="label-mono-sm text-[0.5625rem] text-paper/70">
+                Variance
+              </span>
+            </span>
+          </span>
+        </Step>
+      </div>
+
+      {/* purchasing and deliveries — kept left so the phone never hides it */}
+      <Step
+        delay={SEQUENCE.purchasing}
+        className="border-b border-rule-soft px-3.5 py-3"
+      >
+        <div className="flex items-center gap-2">
+          <span className="label-mono-sm min-w-0 truncate text-ink-55">
+            PO #2481 · Meatsmith Co.
+          </span>
+          <Chip state="flag" className="shrink-0">
+            2 to check
+          </Chip>
+        </div>
+        <div className="mt-2.5 flex items-center gap-2">
+          {purchaseCounts.map((count, i) => (
+            <span key={count.label} className="flex items-center gap-1.5">
+              {i > 0 ? (
+                <span
+                  aria-hidden="true"
+                  className="h-3 w-px bg-rule-soft"
+                />
+              ) : null}
+              <span className="num text-[0.8125rem] font-medium leading-none text-ink">
+                {count.value}
+              </span>
+              <span className="label-mono-sm text-ink-40">{count.label}</span>
+            </span>
+          ))}
+        </div>
+      </Step>
+
+      {/* who is on, right now */}
+      <Step
+        delay={SEQUENCE.staff}
+        className="flex items-center gap-2.5 px-3.5 py-2"
+      >
+        <span
+          aria-hidden="true"
+          className="h-1.5 w-1.5 shrink-0 rounded-full bg-mint node-live"
+        />
+        <span className="label-mono-sm truncate text-ink-55">
+          4 on shift · Fri 3:00pm–10:00pm
+        </span>
+      </Step>
+    </ProductWindow>
+  );
+}
+
+/* ------------------------------------------------------------------- mobile */
+
+function CountPhone() {
+  return (
+    <div className="relative w-[9rem] rounded-[1.375rem] border border-ink/85 bg-ink p-[0.3125rem] shadow-lift xl:w-[9.5rem]">
+      <div className="overflow-hidden rounded-[1.125rem] bg-paper">
+        {/* speaker slot */}
+        <div className="flex h-[1.625rem] items-center justify-center">
+          <span
+            aria-hidden="true"
+            className="h-[3px] w-8 rounded-full bg-ink/12"
+          />
+        </div>
+
+        {/* screen header */}
+        <div className="border-b border-rule px-2 pb-2.5">
+          <span className="flex items-center gap-1.5">
+            <span
+              aria-hidden="true"
+              className="h-1 w-1 rounded-full bg-mint node-live"
+            />
+            <span className="label-mono-sm text-[0.5625rem] text-ink-40">
+              Stock count
+            </span>
+          </span>
+          <span className="mt-2 block text-[0.6875rem] font-medium leading-none text-ink">
+            Cool room 1
+          </span>
+        </div>
+
+        {/* column header */}
+        <div className="flex items-center justify-between gap-2 border-b border-rule-soft px-2 py-1.5">
+          <span className="label-mono-sm text-[0.5rem] text-ink-40">Item</span>
+          <span className="label-mono-sm text-[0.5rem] text-ink-40">
+            On hand
+          </span>
+        </div>
+
+        {/* the count itself */}
+        <ul>
+          {countRows.map((row) => (
+            <li
+              key={row.item}
+              className="flex items-center gap-1 border-b border-rule-soft px-2 py-[0.5rem] last:border-b-0"
+            >
+              <span
+                aria-hidden="true"
+                className={`flex h-2.5 w-2.5 shrink-0 items-center justify-center rounded-[2px] border ${
+                  row.done
+                    ? "border-tartan/40 bg-mint/50 text-tartan"
+                    : "border-rule text-transparent"
+                }`}
+              >
+                <Tick className="h-1.5 w-1.5" />
+              </span>
+              <span className="min-w-0 flex-1 truncate text-[0.625rem] leading-none text-ink-70">
+                {row.item}
+              </span>
+              <span className="num shrink-0 text-[0.625rem] font-medium leading-none text-ink">
+                {row.qty}
+              </span>
+            </li>
+          ))}
+        </ul>
+
+        {/* progress */}
+        <div className="flex items-center justify-between gap-2 border-t border-rule px-2 py-2.5">
+          <span className="label-mono-sm text-[0.5rem] text-ink-40">3 of 4</span>
+          <span className="label-mono-sm rounded-[3px] border border-mint bg-mint/45 px-1.5 py-1 text-[0.5rem] text-tartan">
+            Counting
+          </span>
+        </div>
+
+        {/* tab bar */}
+        <div className="grid grid-cols-3 border-t border-rule bg-shell/60">
+          {["Clock", "Hours", "Stock"].map((tab) => {
+            const active = tab === "Stock";
+            return (
+              <span
+                key={tab}
+                className={`relative flex flex-col items-center gap-1 py-2 ${
+                  active ? "bg-tartan/5" : ""
+                }`}
+              >
+                {active ? (
+                  <span
+                    aria-hidden="true"
+                    className="absolute inset-x-2 top-0 h-0.5 rounded-full bg-tartan"
+                  />
+                ) : null}
+                <span
+                  aria-hidden="true"
+                  className={`h-1 w-1 rounded-[1px] ${
+                    active ? "bg-tartan" : "bg-tartan/25"
+                  }`}
+                />
+                <span
+                  className={`label-mono-sm text-[0.5rem] tracking-[0.06em] ${
+                    active ? "font-semibold text-tartan" : "text-ink-40"
+                  }`}
+                >
+                  {tab}
+                </span>
+              </span>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The hero visual: the NexBrix desktop dashboard an operator opens in the
+ * morning, with the phone their staff count stock on laid over it. One
+ * system, two surfaces — stock, purchasing, deliveries, consumption,
+ * variance and staff all reading off the same week.
  */
 export function HeroComposition() {
-  const reduce = useReducedMotion();
-
   return (
-    <div className="relative lg:h-[447px]">
+    <div className="relative lg:h-[391px]">
+      {/* mint wash, weighted toward the device corner */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -inset-x-4 -inset-y-12 -z-20 sm:-inset-x-8 lg:-inset-x-10"
+        style={{
+          backgroundImage:
+            "radial-gradient(58% 52% at 74% 62%, rgba(189, 235, 207, 0.55), transparent 70%)",
+        }}
+      />
+
       {/* fine operational grid, faded at the edges */}
       <div
         aria-hidden="true"
@@ -72,251 +359,31 @@ export function HeroComposition() {
         }}
       />
 
-      {/* connective rails — desktop only, drawn behind the cards */}
-      <svg
+      {/* tartan bracket above the dashboard, mint bracket under the phone */}
+      <div
         aria-hidden="true"
-        viewBox="0 0 100 100"
-        preserveAspectRatio="none"
-        className="pointer-events-none absolute inset-0 -z-[5] hidden h-full w-full lg:block"
-      >
-        <g
-          fill="none"
-          stroke="var(--color-tartan)"
-          strokeOpacity="0.5"
-          strokeWidth="1.375"
-          vectorEffect="non-scaling-stroke"
-        >
-          <motion.path
-            d={RAIL_PATH}
-            initial={reduce ? false : { pathLength: 0 }}
-            animate={
-              reduce
-                ? { pathLength: 1 }
-                : {
-                    pathLength: [0, 0.18, 0.18, 0.66, 0.66, 0.77, 0.77, 1],
-                  }
-            }
-            transition={
-              reduce
-                ? { duration: 0 }
-                : {
-                    duration: 2.32,
-                    delay: 0.38,
-                    ease: EASE,
-                    times: [0, 0.16, 0.23, 0.58, 0.64, 0.75, 0.81, 1],
-                  }
-            }
-          />
-        </g>
-        {/* A quiet packet moves through the completed chain every few seconds. */}
-        <g
-          fill="none"
-          stroke="var(--color-mint)"
-          strokeWidth="1.75"
-          strokeLinecap="round"
-          vectorEffect="non-scaling-stroke"
-        >
-          <motion.path
-            d={RAIL_PATH}
-            pathLength={1}
-            strokeDasharray="0.055 0.945"
-            initial={{ opacity: 0, strokeDashoffset: 0.055 }}
-            animate={
-              reduce
-                ? { opacity: 0 }
-                : {
-                    opacity: [0, 0.38, 0.38, 0],
-                    strokeDashoffset: [0.055, -0.28, -0.62, -0.945],
-                  }
-            }
-            transition={
-              reduce
-                ? { duration: 0 }
-                : {
-                    duration: 1.25,
-                    delay: 3.7,
-                    ease: "linear",
-                    repeat: Infinity,
-                    repeatDelay: 4.75,
-                  }
-            }
-          />
-        </g>
-      </svg>
+        className="pointer-events-none absolute -left-3.5 -top-3.5 hidden h-14 w-14 rounded-tl-lg border-l border-t border-tartan/25 lg:block"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-2.5 -right-2.5 hidden h-[277px] w-[9rem] rounded-[1.375rem] border border-mint lg:block xl:w-[9.5rem]"
+      />
 
-      <div className="flex flex-col gap-4 lg:contents">
-        {/* 01 — STOCK */}
-        <RevealStep
-          delay={SEQUENCE.count}
-          className="lg:absolute lg:left-0 lg:top-0 lg:w-[86%]"
+      <div className="flex flex-col items-end gap-5 lg:block">
+        <Step
+          delay={SEQUENCE.window}
+          className="w-full lg:absolute lg:left-0 lg:top-0 lg:w-[82%] xl:w-[86%]"
         >
-          <DataCard
-            label="Today's count · Cool room 1"
-            labelClassName="text-[0.6875rem] text-ink/60"
-            status={
-              <span className="label-mono-sm text-[0.6875rem] text-ink/60">07:42</span>
-            }
-            className="hover:shadow-lift transition-shadow duration-500"
-          >
-            <ul className="flex flex-col">
-              {countRows.map((row) => (
-                <li
-                  key={row.item}
-                  className="flex items-center justify-between gap-3 border-b border-rule-soft py-2 last:border-b-0 last:pb-0 first:pt-0"
-                >
-                  <span className="flex min-w-0 items-center gap-2.5">
-                    <span
-                      aria-hidden="true"
-                      className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-[2px] border ${
-                        row.done
-                          ? "border-tartan/40 bg-mint/50 text-tartan"
-                          : "border-rule text-transparent"
-                      }`}
-                    >
-                      <Tick className="h-2.5 w-2.5" />
-                    </span>
-                    <span className="truncate text-[0.875rem] text-ink-70">
-                      {row.item}
-                    </span>
-                  </span>
-                  <span className="num shrink-0 text-[0.875rem] font-medium text-ink">
-                    {row.qty}
-                    <span className="ml-1 text-ink-40">{row.unit}</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </DataCard>
-        </RevealStep>
+          <Dashboard />
+        </Step>
 
-        {/* 02 — PURCHASING + DELIVERIES */}
-        <RevealStep
-          delay={SEQUENCE.purchase}
-          className="lg:absolute lg:left-[26%] lg:top-[163px] lg:w-[74%]"
+        <Step
+          delay={SEQUENCE.phone}
+          x={16}
+          className="relative z-10 lg:absolute lg:right-0 lg:top-[106px]"
         >
-          <DataCard
-            label="PO #2481 · Meatsmith Co."
-            status={<Chip state="flag">2 to check</Chip>}
-            labelClassName="text-[0.6875rem] text-ink/60"
-            className="hover:shadow-lift transition-shadow duration-500"
-          >
-            <div className="grid grid-cols-3 divide-x divide-rule-soft">
-              {[
-                { k: "Ordered", v: "20" },
-                { k: "Delivered", v: "18" },
-                { k: "Invoiced", v: "20" },
-              ].map((c, i) => (
-                <motion.div
-                  key={c.k}
-                  className={`flex flex-col gap-1.5 ${i === 0 ? "pr-3" : "px-3"} ${
-                    i === 2 ? "pr-0" : ""
-                  }`}
-                  initial={reduce ? false : { opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{
-                    duration: 0.34,
-                    delay: reduce ? 0 : SEQUENCE.purchaseValues[i],
-                    ease: EASE,
-                  }}
-                >
-                  <span className="num text-[1.375rem] font-medium leading-none tracking-[-0.02em]">
-                    {c.v}
-                  </span>
-                  <span className="label-mono-sm text-[0.6875rem] text-ink/60">{c.k}</span>
-                </motion.div>
-              ))}
-            </div>
-          </DataCard>
-        </RevealStep>
-
-        {/* 03 — SALES → CONSUMPTION */}
-        <RevealStep
-          delay={SEQUENCE.consumption}
-          className="lg:absolute lg:left-0 lg:top-[273px] lg:w-[54%] xl:w-[64%]"
-        >
-          <DataCard
-            label="Sales → consumption · Chicken breast"
-            status={<span className="label-mono-sm text-[0.6875rem] text-ink/60">Week 34</span>}
-            labelClassName="text-[0.6875rem] text-ink/60"
-            className="hover:shadow-lift transition-shadow duration-500"
-          >
-            <div className="flex flex-col gap-3">
-              <motion.div
-                className="flex flex-col gap-3"
-                initial={reduce ? false : { opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{
-                  duration: 0.38,
-                  delay: reduce ? 0 : SEQUENCE.expected,
-                  ease: EASE,
-                }}
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <span className="label-mono-sm text-[0.6875rem] text-ink/60">Expected</span>
-                  <span className="num text-[0.875rem] font-medium">10kg</span>
-                </div>
-                <QuantityBar percent={83} />
-              </motion.div>
-              <motion.div
-                className="flex flex-col gap-3"
-                initial={reduce ? false : { opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{
-                  duration: 0.38,
-                  delay: reduce ? 0 : SEQUENCE.actual,
-                  ease: EASE,
-                }}
-              >
-                <div className="flex items-center justify-between gap-3 pt-1">
-                  <span className="label-mono-sm text-[0.6875rem] text-tartan">Actual</span>
-                  <span className="num text-[0.875rem] font-medium">12kg</span>
-                </div>
-                <QuantityBar percent={100} variant="over" />
-              </motion.div>
-            </div>
-          </DataCard>
-        </RevealStep>
-
-        {/* variance read-out + staff — the two ends of the chain */}
-        <div className="flex flex-wrap items-stretch gap-4 lg:contents">
-          <RevealStep
-            delay={SEQUENCE.variance}
-            className="lg:absolute lg:right-0 lg:top-[273px]"
-          >
-            <div className="flex items-center gap-3 rounded-[6px] border border-tartan bg-tartan px-4 py-4">
-              <span className="num text-[1.75rem] font-medium leading-none tracking-[-0.02em] text-mint">
-                +2kg
-              </span>
-              <span aria-hidden="true" className="h-7 w-px bg-mint/25" />
-              <span className="flex flex-col gap-1">
-                <span className="num text-[1rem] font-medium leading-none text-paper">
-                  $24
-                </span>
-                <span className="label-mono-sm text-[0.6875rem] text-paper/70">Variance</span>
-              </span>
-            </div>
-          </RevealStep>
-
-          <RevealStep
-            delay={SEQUENCE.staff}
-            className="lg:absolute lg:right-0 lg:top-[346px]"
-          >
-            <div className="flex h-full items-center gap-2.5 rounded-[6px] border border-rule bg-paper px-3 py-2.5">
-              <span
-                aria-hidden="true"
-                className="h-1.5 w-1.5 rounded-full bg-mint"
-              />
-              <span className="flex flex-col gap-1">
-                <span className="text-[0.75rem] leading-none font-medium">
-                  On shift · 4
-                </span>
-                <span className="label-mono-sm text-[0.6875rem] text-ink/60">
-                  Fri 3:00pm–10:00pm
-                </span>
-              </span>
-            </div>
-          </RevealStep>
-        </div>
+          <CountPhone />
+        </Step>
       </div>
     </div>
   );
